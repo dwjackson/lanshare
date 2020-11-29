@@ -1,12 +1,13 @@
 package main
 
 import (
-	"os"
-	"log"
-	"strings"
-	"html/template"
-	"net/http"
+	"bufio"
 	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"os"
+	"strings"
 )
 
 func main() {
@@ -28,6 +29,19 @@ func main() {
 			log.Fatal(err)
 		}
 	})
+
+	http.HandleFunc("/file/", func(res http.ResponseWriter, req *http.Request) {
+		fileName := strings.TrimPrefix(req.URL.Path, "/file/")
+		fileContent, fileErr := readFile(fileName)
+		if fileErr != nil {
+			log.Fatal(err)
+		}
+		_, err = res.Write(fileContent)
+		if err != nil {
+			log.Fatal(err)
+		}
+	})
+
 	addr := ":8080"
 	fmt.Printf("listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
@@ -45,7 +59,7 @@ func writePage(files []os.FileInfo) string {
     <ul>
       {{range $val := .}}
       {{$name := $val.Name}}
-      <li>{{$name}}</li>
+      <li><a href="/file/{{$name}}">{{$name}}</a></li>
       {{end}}
     </ul>
   </body>
@@ -54,4 +68,24 @@ func writePage(files []os.FileInfo) string {
 	b := strings.Builder{}
 	t.Execute(&b, files)
 	return b.String()
+}
+
+func readFile(fileName string) ([]byte, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	stat, statErr := file.Stat()
+	if statErr != nil {
+		return nil, statErr
+	}
+
+	size := stat.Size()
+	buf := make([]byte, size)
+	r := bufio.NewReader(file)
+	_, readErr := r.Read(buf)
+
+	return buf, readErr
 }
