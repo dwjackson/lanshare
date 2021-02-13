@@ -27,13 +27,23 @@ func readDir(path string) ([]os.FileInfo, error) {
 
 func main() {
 	path := "."
-	files, err := readDir(path)
-	if err != nil {
-		panic(err)
-	}
-	pageHtml := writePage(files)
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+		log.Printf("%s %s", req.Method, req.URL)
+		reqPath := req.URL.Path
+		if reqPath != "/" {
+			if path == "/" {
+				reqPath = strings.TrimLeft(reqPath, "/")
+			}
+			path += reqPath
+		} else {
+			path = "."
+		}
+		files, err := readDir(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pageHtml := writePage(path, files)
 		_, err = res.Write([]byte(pageHtml))
 		if err != nil {
 			log.Fatal(err)
@@ -41,12 +51,13 @@ func main() {
 	})
 
 	http.HandleFunc(downloadPath, func(res http.ResponseWriter, req *http.Request) {
+		log.Printf("%s %s", req.Method, req.URL)
 		fileName := strings.TrimPrefix(req.URL.Path, downloadPath)
 		fileContent, fileErr := readFile(fileName)
 		if fileErr != nil {
-			log.Fatal(err)
+			log.Fatal(fileErr)
 		}
-		_, err = res.Write(fileContent)
+		_, err := res.Write(fileContent)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -60,17 +71,26 @@ func main() {
 type Link struct {
 	Name string
 	Href string
+	IsDownload bool
 }
 
-func linkFromFileInfo(fi os.FileInfo) Link {
-	name := fi.Name()
+func linkFromFileInfo(path string, fi os.FileInfo) Link {
+	fileName := fi.Name()
+	filePath := path + "/" + fileName
+	var href string
+	if fi.IsDir() {
+		href = filePath
+	} else {
+		href = downloadPath + filePath
+	}
 	return Link{
-		Name: name,
-		Href: downloadPath + name,
+		Name: fileName,
+		Href: href,
+		IsDownload: !fi.IsDir(),
 	}
 }
 
-func writePage(files []os.FileInfo) string {
+func writePage(path string, files []os.FileInfo) string {
 	pageHtml := `<!DOCTYPE html>
 <html>
   <head>
@@ -81,9 +101,7 @@ func writePage(files []os.FileInfo) string {
     <h1>LANshare</h1>
     <ul>
       {{range $val := .}}
-      {{$name := $val.Name}}
-      {{$href := $val.Href}}
-      <li><a href="{{$href}}">{{$name}}</a></li>
+      <li><a href="{{$val.Href}}" {{if $val.IsDownload}}download{{end}}>{{$val.Name}}</a></li>
       {{end}}
     </ul>
   </body>
@@ -97,7 +115,7 @@ func writePage(files []os.FileInfo) string {
 		},
 	}
 	for _, fi := range(files) {
-		link := linkFromFileInfo(fi)
+		link := linkFromFileInfo(path, fi)
 		links = append(links, link)
 	}
 	t.Execute(&b, links)
