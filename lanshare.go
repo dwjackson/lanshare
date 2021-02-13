@@ -8,20 +8,28 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"errors"
 )
 
 const downloadPath string = "/download/"
 
-func main() {
-	dir, err := os.Open(".")
+func readDir(path string) ([]os.FileInfo, error) {
+	dir, err := os.Open(path)
 	if err != nil {
-		log.Fatal("Could not open current directory")
-		return
+		return nil, errors.New("Could not open directory")
 	}
 	files, err := dir.Readdir(0)
 	if err != nil {
-		log.Fatal("Could not read current directory")
-		return
+		return nil, errors.New("Could not read current directory")
+	}
+	return files, nil
+}
+
+func main() {
+	path := "."
+	files, err := readDir(path)
+	if err != nil {
+		panic(err)
 	}
 	pageHtml := writePage(files)
 
@@ -43,8 +51,6 @@ func main() {
 			log.Fatal(err)
 		}
 	})
-
-	//http.HandleFunc("/
 
 	addr := ":8080"
 	fmt.Printf("listening on %s...\n", addr)
@@ -84,7 +90,12 @@ func writePage(files []os.FileInfo) string {
 </html>`
 	t := template.Must(template.New("pageHtml").Parse(pageHtml))
 	b := strings.Builder{}
-	var links []Link
+	var links []Link = []Link{
+		Link{
+			Name: "..",
+			Href: "/",
+		},
+	}
 	for _, fi := range(files) {
 		link := linkFromFileInfo(fi)
 		links = append(links, link)
