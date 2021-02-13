@@ -16,7 +16,7 @@ const downloadPath string = "/download/"
 func readDir(path string) ([]os.FileInfo, error) {
 	dir, err := os.Open(path)
 	if err != nil {
-		return nil, errors.New("Could not open directory")
+		return nil, errors.New("Could not open directory: " + path)
 	}
 	files, err := dir.Readdir(0)
 	if err != nil {
@@ -30,14 +30,12 @@ func main() {
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		log.Printf("%s %s", req.Method, req.URL)
-		reqPath := req.URL.Path
-		if reqPath != "/" {
-			if path == "/" {
-				reqPath = strings.TrimLeft(reqPath, "/")
-			}
-			path += reqPath
-		} else {
+		reqPath := strings.Replace(req.URL.Path, "..", "", -1)
+		reqPath = strings.Replace(reqPath, "//", "/", -1)
+		if reqPath == "/" {
 			path = "."
+		} else {
+			path = "." + reqPath
 		}
 		files, err := readDir(path)
 		if err != nil {
@@ -45,6 +43,14 @@ func main() {
 		}
 		pageHtml := writePage(path, files)
 		_, err = res.Write([]byte(pageHtml))
+		if err != nil {
+			log.Fatal(err)
+		}
+	})
+
+	http.HandleFunc("/favicon.ico", func(res http.ResponseWriter, req *http.Request) {
+		res.WriteHeader(404)
+		_, err := res.Write([]byte{})
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -109,10 +115,7 @@ func writePage(path string, files []os.FileInfo) string {
 	t := template.Must(template.New("pageHtml").Parse(pageHtml))
 	b := strings.Builder{}
 	var links []Link = []Link{
-		Link{
-			Name: "..",
-			Href: "/",
-		},
+		upDir(path),
 	}
 	for _, fi := range(files) {
 		link := linkFromFileInfo(path, fi)
@@ -122,16 +125,31 @@ func writePage(path string, files []os.FileInfo) string {
 	return b.String()
 }
 
-func readFile(fileName string) ([]byte, error) {
-	file, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
+func upDir(path string) Link {
+	var href string
+	if path == "." {
+		href = "/"
+	} else {
+		pathParts := strings.Split(path, "/")
+		pathParts = pathParts[:len(pathParts) - 1]
+		href = "/" + strings.Join(pathParts, "/")
 	}
-	defer file.Close()
+	return Link{
+		Name: "..",
+		Href: href,
+	}
+}
 
-	stat, statErr := file.Stat()
-	if statErr != nil {
-		return nil, statErr
+func readFile(fileName string) ([]byte, error) {
+file, err := os.Open(fileName)
+if err != nil {
+	return nil, err
+}
+defer file.Close()
+
+stat, statErr := file.Stat()
+if statErr != nil {
+	return nil, statErr
 	}
 
 	size := stat.Size()
