@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+const downloadPath string = "/download/"
+
 func main() {
 	dir, err := os.Open(".")
 	if err != nil {
@@ -30,8 +32,8 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/file/", func(res http.ResponseWriter, req *http.Request) {
-		fileName := strings.TrimPrefix(req.URL.Path, "/file/")
+	http.HandleFunc(downloadPath, func(res http.ResponseWriter, req *http.Request) {
+		fileName := strings.TrimPrefix(req.URL.Path, downloadPath)
 		fileContent, fileErr := readFile(fileName)
 		if fileErr != nil {
 			log.Fatal(err)
@@ -42,9 +44,24 @@ func main() {
 		}
 	})
 
+	//http.HandleFunc("/
+
 	addr := ":8080"
 	fmt.Printf("listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+type Link struct {
+	Name string
+	Href string
+}
+
+func linkFromFileInfo(fi os.FileInfo) Link {
+	name := fi.Name()
+	return Link{
+		Name: name,
+		Href: downloadPath + name,
+	}
 }
 
 func writePage(files []os.FileInfo) string {
@@ -59,14 +76,20 @@ func writePage(files []os.FileInfo) string {
     <ul>
       {{range $val := .}}
       {{$name := $val.Name}}
-      <li><a href="/file/{{$name}}">{{$name}}</a></li>
+      {{$href := $val.Href}}
+      <li><a href="{{$href}}">{{$name}}</a></li>
       {{end}}
     </ul>
   </body>
 </html>`
 	t := template.Must(template.New("pageHtml").Parse(pageHtml))
 	b := strings.Builder{}
-	t.Execute(&b, files)
+	var links []Link
+	for _, fi := range(files) {
+		link := linkFromFileInfo(fi)
+		links = append(links, link)
+	}
+	t.Execute(&b, links)
 	return b.String()
 }
 
