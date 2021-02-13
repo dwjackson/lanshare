@@ -101,15 +101,24 @@ func writePage(path string, files []os.FileInfo) string {
 <html>
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>LANshare</title>
+    <style>
+      #content {
+        max-width: 980px;
+	margin: auto;
+      }
+    </style>
   </head>
   <body>
-    <h1>LANshare</h1>
-    <ul>
-      {{range $val := .}}
-      <li><a href="{{$val.Href}}" {{if $val.IsDownload}}download{{end}}>{{$val.Name}}</a></li>
-      {{end}}
-    </ul>
+    <div id="content">
+      <h1>LANshare</h1>
+      <ul>
+        {{range $val := .}}
+        <li><a href="{{$val.Href}}" {{if $val.IsDownload}}download{{end}}>{{$val.Name}}</a></li>
+        {{end}}
+      </ul>
+    </div>
   </body>
 </html>`
 	t := template.Must(template.New("pageHtml").Parse(pageHtml))
