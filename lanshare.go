@@ -2,13 +2,13 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"strings"
-	"errors"
 )
 
 const downloadPath string = "/download/"
@@ -75,8 +75,8 @@ func main() {
 }
 
 type Link struct {
-	Name string
-	Href string
+	Name       string
+	Href       string
 	IsDownload bool
 }
 
@@ -90,8 +90,8 @@ func linkFromFileInfo(path string, fi os.FileInfo) Link {
 		href = downloadPath + filePath
 	}
 	return Link{
-		Name: fileName,
-		Href: href,
+		Name:       fileName,
+		Href:       href,
 		IsDownload: !fi.IsDir(),
 	}
 }
@@ -126,7 +126,7 @@ func writePage(path string, files []os.FileInfo) string {
 	var links []Link = []Link{
 		upDir(path),
 	}
-	for _, fi := range(files) {
+	for _, fi := range files {
 		link := linkFromFileInfo(path, fi)
 		links = append(links, link)
 	}
@@ -140,7 +140,7 @@ func upDir(path string) Link {
 		href = "/"
 	} else {
 		pathParts := strings.Split(path, "/")
-		pathParts = pathParts[:len(pathParts) - 1]
+		pathParts = pathParts[:len(pathParts)-1]
 		href = "/" + strings.Join(pathParts, "/")
 	}
 	return Link{
@@ -150,15 +150,15 @@ func upDir(path string) Link {
 }
 
 func readFile(fileName string) ([]byte, error) {
-file, err := os.Open(fileName)
-if err != nil {
-	return nil, err
-}
-defer file.Close()
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-stat, statErr := file.Stat()
-if statErr != nil {
-	return nil, statErr
+	stat, statErr := file.Stat()
+	if statErr != nil {
+		return nil, statErr
 	}
 
 	size := stat.Size()
