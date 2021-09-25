@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"io/ioutil"
 )
 
 const downloadPath string = "/download/"
+const templateHtmlFileName string = "index.html.tmpl"
 
 func readDir(path string) ([]os.FileInfo, error) {
 	dir, err := os.Open(path)
@@ -97,30 +99,12 @@ func linkFromFileInfo(path string, fi os.FileInfo) Link {
 }
 
 func writePage(path string, files []os.FileInfo) string {
-	pageHtml := `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>LANshare</title>
-    <style>
-      #content {
-        max-width: 980px;
-	margin: auto;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="content">
-      <h1>LANshare</h1>
-      <ul>
-        {{range $val := .}}
-        <li><a href="{{$val.Href}}" {{if $val.IsDownload}}download{{end}}>{{$val.Name}}</a></li>
-        {{end}}
-      </ul>
-    </div>
-  </body>
-</html>`
+	content, err := ioutil.ReadFile(templateHtmlFileName)
+	if err != nil {
+		panic("Could not read tempate HTML file")
+	}
+	pageHtml := string(content)
+
 	t := template.Must(template.New("pageHtml").Parse(pageHtml))
 	b := strings.Builder{}
 	var links []Link = []Link{
