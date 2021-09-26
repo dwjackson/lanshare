@@ -18,4 +18,4 @@ listening on :8080...
 
 ## License
 
-LanShare is licensed under the MIT license.
+LANshare is licensed under the MIT license.
