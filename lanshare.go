@@ -105,8 +105,9 @@ func writePage(path string, files []os.FileInfo) string {
 
 	t := template.Must(template.New("pageHtml").Parse(pageHtml))
 	b := strings.Builder{}
-	var links []Link = []Link{
-		upDir(path),
+	var links []Link
+	if path != "." {
+		links = append(links, upDir(path))
 	}
 	for _, fi := range files {
 		link := linkFromFileInfo(path, fi)
