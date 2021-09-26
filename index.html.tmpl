@@ -19,7 +19,7 @@
       <h1>LANshare</h1>
       <ul>
         {{range $val := .}}
-        <li><a href="{{$val.Href}}" {{if $val.IsDownload}}download{{end}}>{{$val.Name}}</a></li>
+        <li><a href="{{$val.Href}}" {{if $val.IsDownload}}download{{end}}>{{$val.Name}}</a>{{ if $val.IsDownload }} ({{$val.HumanSize}}){{end}}</li>
         {{end}}
       </ul>
     </div>
