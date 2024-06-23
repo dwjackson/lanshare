@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 )
 
 const downloadPath string = "/download/"
+const maxFileSize int64 = 10 << 20 // 10 MB
 
 func readDir(path string) ([]os.FileInfo, error) {
 	dir, err := os.Open(path)
@@ -28,7 +30,11 @@ func main() {
 	path := "."
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		log.Printf("%s %s", req.Method, req.URL)
+		if req.Method != http.MethodGet {
+			http.Error(res, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		log.Printf("%s %s\n", req.Method, req.URL)
 		reqPath := strings.Replace(req.URL.Path, "..", "", -1)
 		reqPath = strings.Replace(reqPath, "//", "/", -1)
 		if reqPath == "/" {
@@ -48,14 +54,18 @@ func main() {
 	})
 
 	http.HandleFunc("/favicon.ico", func(res http.ResponseWriter, req *http.Request) {
-		res.WriteHeader(404)
-		_, err := res.Write([]byte{})
-		if err != nil {
-			log.Fatal(err)
+		if req.Method != http.MethodGet {
+			http.Error(res, "Method not allowed", http.StatusMethodNotAllowed)
+			return
 		}
+		http.Error(res, "No such file", http.StatusNotFound)
 	})
 
 	http.HandleFunc(downloadPath, func(res http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodGet {
+			http.Error(res, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		log.Printf("%s %s", req.Method, req.URL)
 		fileName := strings.TrimPrefix(req.URL.Path, downloadPath)
 		fileContent, fileErr := readFile(fileName)
@@ -66,6 +76,45 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	})
+
+	http.HandleFunc("/upload", func(res http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodPost {
+			http.Error(res, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		err := req.ParseMultipartForm(maxFileSize)
+		if err != nil {
+			log.Println("Error parsing form: ", err)
+			http.Error(res, "Error parsing form", http.StatusInternalServerError)
+			return
+		}
+		uploadedFile, header, err := req.FormFile("file")
+		if err != nil {
+			log.Println("Error reading file")
+			http.Error(res, "Could not read file", http.StatusInternalServerError)
+			return
+		}
+		defer uploadedFile.Close()
+
+		fileName := header.Filename
+		file, err := os.Create(fileName)
+		if err != nil {
+			log.Println("Error creating file: ", err)
+			http.Error(res, "Could not save file", http.StatusInternalServerError)
+			return
+		}
+		defer file.Close()
+
+		_, err = io.Copy(file, uploadedFile)
+		if err != nil {
+			log.Println("Error writing file: ", err)
+			http.Error(res, "Error writing file", http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("File uploaded: %s", fileName)
+		res.WriteHeader(http.StatusOK)
 	})
 
 	addr := ":8080"
