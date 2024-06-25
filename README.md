@@ -16,6 +16,9 @@ $ lanshare
 listening on :8080...
 ```
 
+To set the maximum upload file size, pass the `-m` flag with an argument having
+the form `[0-9]+(KiB|MiB|GiB)?`.
+
 ## License
 
 LANshare is licensed under the MIT license.

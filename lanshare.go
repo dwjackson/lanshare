@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,7 +13,7 @@ import (
 )
 
 const downloadPath string = "/download/"
-const maxFileSize int64 = 10 << 20 // 10 MB
+const DEFAULT_MAX_FILE_SIZE = "10MiB"
 
 func readDir(path string) ([]os.FileInfo, error) {
 	dir, err := os.Open(path)
@@ -27,6 +28,14 @@ func readDir(path string) ([]os.FileInfo, error) {
 }
 
 func main() {
+	maxUploadFileSizeString := flag.String("m", DEFAULT_MAX_FILE_SIZE, "Max file size")
+	flag.Parse()
+	maxUploadFileSize, err := parseFileSize(*maxUploadFileSizeString)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Max upload file size in bytes: ", maxUploadFileSize)
+
 	path := "."
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
@@ -83,7 +92,7 @@ func main() {
 			http.Error(res, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		err := req.ParseMultipartForm(maxFileSize)
+		err := req.ParseMultipartForm(maxUploadFileSize)
 		if err != nil {
 			log.Println("Error parsing form: ", err)
 			http.Error(res, "Error parsing form", http.StatusInternalServerError)
