@@ -19,6 +19,8 @@ listening on :8080...
 To set the maximum upload file size, pass the `-m` flag with an argument having
 the form `[0-9]+(KiB|MiB|GiB)?`.
 
+To set the port, use the `-p [PORT]` flag.
+
 ## License
 
 LANshare is licensed under the MIT license.

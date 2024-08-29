@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -28,6 +29,7 @@ func readDir(path string) ([]os.FileInfo, error) {
 }
 
 func main() {
+	portPtr := flag.Int("p", 8080, "Port")
 	maxUploadFileSizeString := flag.String("m", DEFAULT_MAX_FILE_SIZE, "Max file size")
 	flag.Parse()
 	maxUploadFileSize, err := parseFileSize(*maxUploadFileSizeString)
@@ -126,7 +128,7 @@ func main() {
 		res.WriteHeader(http.StatusOK)
 	})
 
-	addr := ":8080"
+	addr := ":" + strconv.Itoa(*portPtr)
 	fmt.Printf("listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
