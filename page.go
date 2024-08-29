@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"html/template"
 	"os"
 	"strings"
@@ -11,56 +12,10 @@ type pageData struct {
 	WebPath string
 }
 
-func WritePage(path string, files []os.FileInfo) string {
-	pageHtml := `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>LANshare: {{.WebPath}}</title>
-    <style>
-      body {
-        font-family: 'Helvetica', 'Arial', sans-serif;
-      }
-      #content {
-        max-width: 980px;
-	margin: auto;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="content">
-      <h1>LANshare: {{.WebPath}}</h1>
-      <div class="upload">
-      	<label for="upload-input">Upload File</label>
-        <input id="upload-input" type="file"/>
-      </div>
-      <ul>
-        {{range $val := .Links}}
-        <li><a href="{{$val.Href}}" {{if $val.IsDownload}}download{{end}}>{{$val.Name}}</a>{{ if $val.IsDownload }} ({{$val.HumanSize}}){{end}}</li>
-        {{end}}
-      </ul>
-    </div>
-    <script>
-    const inputElem = document.getElementById('upload-input');
-    inputElem.addEventListener('change', () => {
-    	const formData = new FormData();
-    	formData.append('file', inputElem.files[0]);
-    	const request = new Request('/upload', {
-    		method: 'POST',
-    		body: formData
-    	});
-    	fetch(request).then(res => {
-    		inputElem.value = '';
-    		window.location.reload();
-    	}, err => {
-    		console.error(err);
-    	});
-    });
-    </script>
-  </body>
-</html>`
+//go:embed index.html
+var pageHtml string
 
+func WritePage(path string, files []os.FileInfo) string {
 	t := template.Must(template.New("pageHtml").Parse(pageHtml))
 	b := strings.Builder{}
 	var links []Link
