@@ -1,7 +1,9 @@
 package main
 
 import (
+	"archive/zip"
 	"bufio"
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -28,6 +30,18 @@ func readDir(path string) ([]os.FileInfo, error) {
 	return files, nil
 }
 
+func currentPath(req *http.Request) string {
+	var path string
+	reqPath := strings.Replace(req.URL.Path, "..", "", -1)
+	reqPath = strings.Replace(reqPath, "//", "/", -1)
+	if reqPath == "/" {
+		path = "."
+	} else {
+		path = "." + reqPath
+	}
+	return path
+}
+
 func main() {
 	portPtr := flag.Int("p", 8080, "Port")
 	maxUploadFileSizeString := flag.String("m", DEFAULT_MAX_FILE_SIZE, "Max file size")
@@ -46,13 +60,7 @@ func main() {
 			return
 		}
 		log.Printf("%s %s\n", req.Method, req.URL)
-		reqPath := strings.Replace(req.URL.Path, "..", "", -1)
-		reqPath = strings.Replace(reqPath, "//", "/", -1)
-		if reqPath == "/" {
-			path = "."
-		} else {
-			path = "." + reqPath
-		}
+		path := currentPath(req)	
 		files, err := readDir(path)
 		if err != nil {
 			log.Fatal(err)
@@ -87,6 +95,51 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	})
+
+	http.HandleFunc("/download_all", func(res http.ResponseWriter, req *http.Request) {
+		log.Printf("Download All\n")
+		path = "."
+		buf := new(bytes.Buffer)
+		zipWriter := zip.NewWriter(buf)
+		files, err := readDir(path)
+		if err != nil {
+			log.Fatal(err)
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		for _, fi := range files {
+			if fi.Name()[0] == '.' || fi.IsDir() {
+				continue
+			}
+			fileName := fi.Name()
+			zipEntry, err := zipWriter.Create(fileName)
+			if err != nil {
+				log.Fatal(err)
+				res.WriteHeader(http.StatusInternalServerError)
+				return 
+			}
+			fileBytes, err := os.ReadFile(fileName)
+			if err != nil {
+				log.Fatal(err)
+				res.WriteHeader(http.StatusInternalServerError)
+				return 
+			}
+			_, err = zipEntry.Write(fileBytes)
+			if err != nil {
+				log.Fatal(err)
+				res.WriteHeader(http.StatusInternalServerError)
+				return 
+			}
+		}
+		err = zipWriter.Close()
+		if err != nil {
+			log.Fatal(err)
+			res.WriteHeader(http.StatusInternalServerError)
+			return 
+		}
+		res.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=%s", "all_files.zip"))
+		res.Write(buf.Bytes())
 	})
 
 	http.HandleFunc("/upload", func(res http.ResponseWriter, req *http.Request) {

@@ -12,14 +12,20 @@
         max-width: 980px;
 	margin: auto;
       }
+      .control + .control {
+	      margin-top: 1rem;
+      }
     </style>
   </head>
   <body>
     <div id="content">
       <h1>LANshare: {{.WebPath}}</h1>
-      <div class="upload">
+      <div class="control">
       	<label for="upload-input">Upload File</label>
         <input id="upload-input" type="file"/>
+      </div>
+      <div class="control">
+	      <a href="/download_all" download>Download All</a>
       </div>
       <ul>
         {{range $val := .Links}}
