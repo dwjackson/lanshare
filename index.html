@@ -25,7 +25,7 @@
         <input id="upload-input" type="file"/>
       </div>
       <div class="control">
-	      <a href="/download_all" download>Download All</a>
+	      <a href="/download_all?path={{.WebPath}}" download>Download All</a>
       </div>
       <ul>
         {{range $val := .Links}}

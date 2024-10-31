@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"net/url"
 )
 
 const downloadPath string = "/download/"
@@ -51,8 +52,6 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Max upload file size in bytes: ", maxUploadFileSize)
-
-	path := "."
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodGet {
@@ -99,7 +98,24 @@ func main() {
 
 	http.HandleFunc("/download_all", func(res http.ResponseWriter, req *http.Request) {
 		log.Printf("Download All\n")
-		path = "."
+
+		reqParams, err := url.ParseQuery(req.URL.RawQuery)
+		if err != nil {
+			log.Fatal(err)
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		log.Println(reqParams)
+		pathParam, ok := reqParams["path"]
+		if !ok {
+			log.Fatal("No path given")
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		path := pathParam[0]
+		path = strings.Replace(path, "..", "", -1) // Remove any "go up" directives
+		path = "." + path
+
 		buf := new(bytes.Buffer)
 		zipWriter := zip.NewWriter(buf)
 		files, err := readDir(path)
@@ -119,7 +135,8 @@ func main() {
 				res.WriteHeader(http.StatusInternalServerError)
 				return 
 			}
-			fileBytes, err := os.ReadFile(fileName)
+			filePath := path + "/" + fileName
+			fileBytes, err := os.ReadFile(filePath)
 			if err != nil {
 				log.Fatal(err)
 				res.WriteHeader(http.StatusInternalServerError)
