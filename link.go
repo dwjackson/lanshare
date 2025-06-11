@@ -14,20 +14,24 @@ type Link struct {
 }
 
 const kilobyte int64 = 1024
-const megabyte int64 = kilobyte * kilobyte
-const gigabyte int64 = megabyte * kilobyte
+const megabyte int64 = 1024 * 1024
+const gigabyte int64 = 1024 * 1024 * 1024 
 
-func humanSize(size int64) string {
+func HumanSize(size int64) string {
 	if size < kilobyte {
 		return strconv.FormatInt(size, 10) + "B"
 	}
 	if size >= kilobyte && size < megabyte {
 		kbSize := float64(size) / float64(kilobyte)
-		return strconv.FormatFloat(kbSize, 'f', 2, 64) + "kB"
+		return strconv.FormatFloat(kbSize, 'f', 2, 64) + "KiB"
 	}
 	if size >= megabyte && size < gigabyte {
 		mbSize := float64(size) / float64(megabyte)
-		return strconv.FormatFloat(mbSize, 'f', 2, 64) + "MB"
+		return strconv.FormatFloat(mbSize, 'f', 2, 64) + "MiB"
+	}
+	if size >= gigabyte {
+		mbSize := float64(size) / float64(gigabyte)
+		return strconv.FormatFloat(mbSize, 'f', 2, 64) + "GiB"
 	}
 	return ""
 }
@@ -44,7 +48,7 @@ func linkFromFileInfo(path string, fi os.FileInfo) Link {
 	return Link{
 		Name:       fileName,
 		Size:       fi.Size(),
-		HumanSize:  humanSize(fi.Size()),
+		HumanSize:  HumanSize(fi.Size()),
 		Href:       href,
 		IsDownload: !fi.IsDir(),
 	}
