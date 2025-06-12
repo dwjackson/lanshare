@@ -15,7 +15,7 @@ type Link struct {
 
 const kilobyte int64 = 1024
 const megabyte int64 = 1024 * 1024
-const gigabyte int64 = 1024 * 1024 * 1024 
+const gigabyte int64 = 1024 * 1024 * 1024
 
 func HumanSize(size int64) string {
 	if size < kilobyte {

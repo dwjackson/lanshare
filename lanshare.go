@@ -2,7 +2,6 @@ package main
 
 import (
 	"archive/zip"
-	"bufio"
 	"bytes"
 	"errors"
 	"flag"
@@ -10,10 +9,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
-	"net/url"
 )
 
 const downloadPath string = "/download/"
@@ -59,7 +58,7 @@ func main() {
 			return
 		}
 		log.Printf("%s %s\n", req.Method, req.URL)
-		path := currentPath(req)	
+		path := currentPath(req)
 		files, err := readDir(path)
 		if err != nil {
 			log.Fatal(err)
@@ -86,14 +85,28 @@ func main() {
 		}
 		log.Printf("%s %s", req.Method, req.URL)
 		fileName := strings.TrimPrefix(req.URL.Path, downloadPath)
-		fileContent, fileErr := readFile(fileName)
-		if fileErr != nil {
-			log.Fatal(fileErr)
+
+		file, fileError := os.Open(fileName)
+		if fileError != nil {
+			log.Fatal(fileError)
+			res.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		_, err := res.Write(fileContent)
-		if err != nil {
-			log.Fatal(err)
+		defer file.Close()
+
+		fileStat, statError := file.Stat()
+		if statError != nil {
+			log.Fatal(statError)
+			res.WriteHeader(http.StatusInternalServerError)
+			return
 		}
+
+		contentDisposition := fmt.Sprintf("attachment; fileName=%s", fileName)
+		res.Header().Set("Content-Disposition", contentDisposition)
+		res.Header().Set("Content-Type", "application/octet-stream")
+		res.Header().Set("Content-Length", strconv.FormatInt(fileStat.Size(), 10))
+
+		http.ServeContent(res, req, fileName, fileStat.ModTime(), file)
 	})
 
 	http.HandleFunc("/download_all", func(res http.ResponseWriter, req *http.Request) {
@@ -133,27 +146,27 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 				res.WriteHeader(http.StatusInternalServerError)
-				return 
+				return
 			}
 			filePath := path + "/" + fileName
 			fileBytes, err := os.ReadFile(filePath)
 			if err != nil {
 				log.Fatal(err)
 				res.WriteHeader(http.StatusInternalServerError)
-				return 
+				return
 			}
 			_, err = zipEntry.Write(fileBytes)
 			if err != nil {
 				log.Fatal(err)
 				res.WriteHeader(http.StatusInternalServerError)
-				return 
+				return
 			}
 		}
 		err = zipWriter.Close()
 		if err != nil {
 			log.Fatal(err)
 			res.WriteHeader(http.StatusInternalServerError)
-			return 
+			return
 		}
 		res.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=%s", "all_files.zip"))
 		res.Write(buf.Bytes())
@@ -217,24 +230,4 @@ func upDir(path string) Link {
 		Href: href,
 		Size: 0,
 	}
-}
-
-func readFile(fileName string) ([]byte, error) {
-	file, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	stat, statErr := file.Stat()
-	if statErr != nil {
-		return nil, statErr
-	}
-
-	size := stat.Size()
-	buf := make([]byte, size)
-	r := bufio.NewReader(file)
-	_, readErr := r.Read(buf)
-
-	return buf, readErr
 }

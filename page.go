@@ -27,11 +27,11 @@ func WritePage(path string, files []os.FileInfo) string {
 	sort.Slice(links, func(i, j int) bool {
 		return links[i].Name < links[j].Name
 	})
-	upSlice := []Link { upDir(path) }
+	upSlice := []Link{upDir(path)}
 	if path != "." {
 		links = append(upSlice, links...)
 	}
-	
+
 	var webPath string
 	if path == "." {
 		webPath = "/"
