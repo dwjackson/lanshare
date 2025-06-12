@@ -2,7 +2,6 @@ package main
 
 import (
 	"archive/zip"
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -94,19 +93,7 @@ func main() {
 		}
 		defer file.Close()
 
-		fileStat, statError := file.Stat()
-		if statError != nil {
-			log.Fatal(statError)
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		contentDisposition := fmt.Sprintf("attachment; fileName=%s", fileName)
-		res.Header().Set("Content-Disposition", contentDisposition)
-		res.Header().Set("Content-Type", "application/octet-stream")
-		res.Header().Set("Content-Length", strconv.FormatInt(fileStat.Size(), 10))
-
-		http.ServeContent(res, req, fileName, fileStat.ModTime(), file)
+		serveFile(res, req, file)
 	})
 
 	http.HandleFunc("/download_all", func(res http.ResponseWriter, req *http.Request) {
@@ -129,8 +116,25 @@ func main() {
 		path = strings.Replace(path, "..", "", -1) // Remove any "go up" directives
 		path = "." + path
 
-		buf := new(bytes.Buffer)
-		zipWriter := zip.NewWriter(buf)
+		zipFileName := "all_files.zip"
+		zipFile, zipFileCreationError := os.Create(zipFileName)
+		if zipFileCreationError != nil {
+			log.Fatal(zipFileCreationError)
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer func() {
+			err := zipFile.Close()
+			if err != nil {
+				panic(err)
+			}
+			err = os.Remove(zipFileName)
+			if err != nil {
+				panic(err)
+			}
+		}()
+
+		zipWriter := zip.NewWriter(zipFile)
 		files, err := readDir(path)
 		if err != nil {
 			log.Fatal(err)
@@ -168,8 +172,8 @@ func main() {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		res.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=%s", "all_files.zip"))
-		res.Write(buf.Bytes())
+
+		serveFile(res, req, zipFile)
 	})
 
 	http.HandleFunc("/upload", func(res http.ResponseWriter, req *http.Request) {
@@ -230,4 +234,22 @@ func upDir(path string) Link {
 		Href: href,
 		Size: 0,
 	}
+}
+
+func serveFile(res http.ResponseWriter, req *http.Request, file *os.File) {
+	fileStat, statError := file.Stat()
+	if statError != nil {
+		log.Fatal(statError)
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	fileName := fileStat.Name()
+	contentDisposition := fmt.Sprintf("attachment; fileName=%s", fileName)
+	res.Header().Set("Content-Disposition", contentDisposition)
+	res.Header().Set("Content-Type", "application/octet-stream")
+	fileSize := fileStat.Size()
+	res.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
+
+	http.ServeContent(res, req, fileName, fileStat.ModTime(), file)
 }
