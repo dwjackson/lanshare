@@ -50,3 +50,19 @@ func WritePage(path string, files []os.FileInfo) string {
 	}
 	return b.String()
 }
+
+func upDir(path string) Link {
+	var href string
+	if path == "." {
+		href = "/"
+	} else {
+		pathParts := strings.Split(path, "/")
+		pathParts = pathParts[:len(pathParts)-1]
+		href = "/" + strings.Join(pathParts, "/")
+	}
+	return Link{
+		Name: "..",
+		Href: href,
+		Size: 0,
+	}
+}

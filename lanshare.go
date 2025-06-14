@@ -170,22 +170,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
-func upDir(path string) Link {
-	var href string
-	if path == "." {
-		href = "/"
-	} else {
-		pathParts := strings.Split(path, "/")
-		pathParts = pathParts[:len(pathParts)-1]
-		href = "/" + strings.Join(pathParts, "/")
-	}
-	return Link{
-		Name: "..",
-		Href: href,
-		Size: 0,
-	}
-}
-
 func serveFile(res http.ResponseWriter, req *http.Request, file *os.File, fileName string) {
 	fileStat, statError := file.Stat()
 	if statError != nil {
