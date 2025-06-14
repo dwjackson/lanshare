@@ -16,30 +16,6 @@ import (
 const downloadPath string = "/download/"
 const DEFAULT_MAX_FILE_SIZE = "10MiB"
 
-func readDir(path string) ([]os.FileInfo, error) {
-	dir, err := os.Open(path)
-	if err != nil {
-		return nil, errors.New("Could not open directory: " + path)
-	}
-	files, err := dir.Readdir(0)
-	if err != nil {
-		return nil, errors.New("Could not read current directory")
-	}
-	return files, nil
-}
-
-func currentPath(req *http.Request) string {
-	var path string
-	reqPath := strings.Replace(req.URL.Path, "..", "", -1)
-	reqPath = strings.Replace(reqPath, "//", "/", -1)
-	if reqPath == "/" {
-		path = "."
-	} else {
-		path = "." + reqPath
-	}
-	return path
-}
-
 func main() {
 	portPtr := flag.Int("p", 8080, "Port")
 	maxUploadFileSizeString := flag.String("m", DEFAULT_MAX_FILE_SIZE, "Max file size")
@@ -168,6 +144,30 @@ func main() {
 	addr := ":" + strconv.Itoa(*portPtr)
 	fmt.Printf("listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+func readDir(path string) ([]os.FileInfo, error) {
+	dir, err := os.Open(path)
+	if err != nil {
+		return nil, errors.New("Could not open directory: " + path)
+	}
+	files, err := dir.Readdir(0)
+	if err != nil {
+		return nil, errors.New("Could not read current directory")
+	}
+	return files, nil
+}
+
+func currentPath(req *http.Request) string {
+	var path string
+	reqPath := strings.Replace(req.URL.Path, "..", "", -1)
+	reqPath = strings.Replace(reqPath, "//", "/", -1)
+	if reqPath == "/" {
+		path = "."
+	} else {
+		path = "." + reqPath
+	}
+	return path
 }
 
 func serveFile(res http.ResponseWriter, req *http.Request, file *os.File, fileName string) {
