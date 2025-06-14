@@ -22,7 +22,7 @@ func (t *TempZipFile) Close() error {
 }
 
 func CreateTemporaryZipFile(path string) (TempZipFile, error) {
-	file, err := os.CreateTemp("", "all_files")
+	file, err := os.CreateTemp("", "temp_zip")
 	if err != nil {
 		return TempZipFile{}, err
 	}

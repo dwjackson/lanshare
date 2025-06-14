@@ -92,7 +92,7 @@ func main() {
 		}
 		defer file.Close()
 
-		serveFile(res, req, file)
+		serveFile(res, req, file, file.Name())
 	})
 
 	http.HandleFunc("/download_all", func(res http.ResponseWriter, req *http.Request) {
@@ -123,7 +123,7 @@ func main() {
 		}
 		defer zipFile.Close()
 
-		serveFile(res, req, zipFile.file)
+		serveFile(res, req, zipFile.file, "all_files.zip")
 	})
 
 	http.HandleFunc("/upload", func(res http.ResponseWriter, req *http.Request) {
@@ -186,7 +186,7 @@ func upDir(path string) Link {
 	}
 }
 
-func serveFile(res http.ResponseWriter, req *http.Request, file *os.File) {
+func serveFile(res http.ResponseWriter, req *http.Request, file *os.File, fileName string) {
 	fileStat, statError := file.Stat()
 	if statError != nil {
 		log.Fatal(statError)
@@ -194,7 +194,6 @@ func serveFile(res http.ResponseWriter, req *http.Request, file *os.File) {
 		return
 	}
 
-	fileName := fileStat.Name()
 	contentDisposition := fmt.Sprintf("attachment; fileName=%s", fileName)
 	res.Header().Set("Content-Disposition", contentDisposition)
 	res.Header().Set("Content-Type", "application/octet-stream")
