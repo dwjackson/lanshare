@@ -1,7 +1,6 @@
 package main
 
 import (
-	"archive/zip"
 	"errors"
 	"flag"
 	"fmt"
@@ -116,64 +115,15 @@ func main() {
 		path = strings.Replace(path, "..", "", -1) // Remove any "go up" directives
 		path = "." + path
 
-		zipFileName := "all_files.zip"
-		zipFile, zipFileCreationError := os.Create(zipFileName)
-		if zipFileCreationError != nil {
-			log.Fatal(zipFileCreationError)
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		defer func() {
-			err := zipFile.Close()
-			if err != nil {
-				panic(err)
-			}
-			err = os.Remove(zipFileName)
-			if err != nil {
-				panic(err)
-			}
-		}()
-
-		zipWriter := zip.NewWriter(zipFile)
-		files, err := readDir(path)
+		zipFile, err := CreateTemporaryZipFile(path)
 		if err != nil {
 			log.Fatal(err)
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		for _, fi := range files {
-			if fi.Name()[0] == '.' || fi.IsDir() {
-				continue
-			}
-			fileName := fi.Name()
-			zipEntry, err := zipWriter.Create(fileName)
-			if err != nil {
-				log.Fatal(err)
-				res.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			filePath := path + "/" + fileName
-			fileBytes, err := os.ReadFile(filePath)
-			if err != nil {
-				log.Fatal(err)
-				res.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			_, err = zipEntry.Write(fileBytes)
-			if err != nil {
-				log.Fatal(err)
-				res.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		}
-		err = zipWriter.Close()
-		if err != nil {
-			log.Fatal(err)
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		defer zipFile.Close()
 
-		serveFile(res, req, zipFile)
+		serveFile(res, req, zipFile.file)
 	})
 
 	http.HandleFunc("/upload", func(res http.ResponseWriter, req *http.Request) {
