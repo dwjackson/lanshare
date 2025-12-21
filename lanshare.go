@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,6 +18,8 @@ const downloadPath string = "/download/"
 const DEFAULT_MAX_FILE_SIZE = "10MiB"
 
 func main() {
+	printIpAddress()
+
 	portPtr := flag.Int("p", 8080, "Port")
 	maxUploadFileSizeString := flag.String("m", DEFAULT_MAX_FILE_SIZE, "Max file size")
 	flag.Parse()
@@ -144,6 +147,23 @@ func main() {
 	addr := ":" + strconv.Itoa(*portPtr)
 	fmt.Printf("listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+func printIpAddress() {
+	addresses, err := net.InterfaceAddrs()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println("IP Address(es):")
+	for _, addr := range addresses {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			fmt.Println(ipnet.IP.String())
+		}
+	}
+
+	fmt.Println()
 }
 
 func readDir(path string) ([]os.FileInfo, error) {
