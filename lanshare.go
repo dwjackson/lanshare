@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -71,7 +72,8 @@ func main() {
 		}
 		defer file.Close()
 
-		serveFile(res, req, file, file.Name())
+		downloadFileName := filepath.Base(file.Name())
+		serveFile(res, req, file, downloadFileName)
 	})
 
 	http.HandleFunc("/download_all", func(res http.ResponseWriter, req *http.Request) {
