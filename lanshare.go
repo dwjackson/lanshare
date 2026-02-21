@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Max upload file size in bytes: ", maxUploadFileSize)
+	fmt.Printf("Max upload file size: %d (%s)\n", maxUploadFileSize, formatHumanReadableBytes(maxUploadFileSize))
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodGet {

@@ -8,6 +8,10 @@ import (
 	"unicode"
 )
 
+const kibibytes float64 = 1024.0
+const mebibytes float64 = kibibytes * 1024.0
+const gibibytes float64 = mebibytes * 1024.0
+
 func parseFileSize(input string) (int64, error) {
 	runes := []rune(input)
 	n, i, err := parseNumber(runes)
@@ -67,4 +71,22 @@ func parseShift(unit string) (int, error) {
 		return 0, errors.New(msg)
 	}
 	return shift, nil
+}
+
+func formatHumanReadableBytes(bytes int64) string {
+	var unit string
+	number := float64(bytes)
+	if number >= gibibytes {
+		number /= gibibytes
+		unit = "GiB"
+	} else if number >= mebibytes {
+		number /= mebibytes
+		unit = "MiB"
+	} else if number >= kibibytes {
+		number /= kibibytes
+		unit = "KiB"
+	} else {
+		unit = "B"
+	}
+	return fmt.Sprintf("%.2f%s", number, unit)
 }

@@ -40,3 +40,26 @@ func testParse(t *testing.T, input string, expected int64) {
 		t.Fatalf("Expected %d, got %d", expected, actual)
 	}
 }
+
+func TestFormatHumanReadableBytes(t *testing.T) {
+	tests := []struct {
+		byteCount int64
+		expected  string
+		name      string
+	}{
+		{123, "123.00B", "in bytes"},
+		{1024, "1.00KiB", "kibibyte"},
+		{1024 + 512, "1.50KiB", "fractional kibibytes"},
+		{1024*1024 + 1024*512, "1.50MiB", "mebibytes"},
+		{1342177280, "1.25GiB", "gibibytes"},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			actual := formatHumanReadableBytes(testCase.byteCount)
+			if actual != testCase.expected {
+				t.Fatalf("Expected %s, got %s", testCase.expected, actual)
+			}
+		})
+	}
+}
